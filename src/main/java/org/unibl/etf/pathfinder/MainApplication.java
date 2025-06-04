@@ -219,7 +219,7 @@ public class MainApplication extends Application {
                 // Crtaj čvor (grad)
                 gc.setFill(Color.LIGHTBLUE);
                 gc.fillOval(cx - NODE_RADIUS, cy - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
-                gc.setStroke(Color.BLACK);
+                gc.setStroke(Color.GRAY);
                 gc.strokeOval(cx - NODE_RADIUS, cy - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
 
                 // Ime grada
