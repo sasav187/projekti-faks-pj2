@@ -24,6 +24,10 @@ import java.util.*;
 public class MainApplication extends Application {
 
     private static final double NODE_RADIUS = 15;
+    private boolean selectingStart = true;
+    private City selectedStartNode = null;
+    private City selectedEndNode = null;
+
 
     private Map<String, City> cityMap;
     private final Map<CircleNode, City> cityNodes = new HashMap<>();
@@ -222,14 +226,26 @@ public class MainApplication extends Application {
             double xClick = event.getX();
             double yClick = event.getY();
 
-            Optional<City> clickedCityOpt = cityNodes.entrySet().stream()
+            Optional<Map.Entry<CircleNode, City>> clickedCityEntry = cityNodes.entrySet().stream()
                     .filter(entry -> entry.getKey().containsPoint(xClick, yClick))
-                    .map(Map.Entry::getValue)
                     .findFirst();
 
-            clickedCityOpt.ifPresent(city -> {
-                cityListView.getSelectionModel().select(city.getName());
-                cityListView.scrollTo(city.getName());
+            clickedCityEntry.ifPresent(entry -> {
+                City city = entry.getValue();
+                String name = city.getName();
+                cityListView.getSelectionModel().select(name);
+                cityListView.scrollTo(name);
+
+                if (selectingStart) {
+                    selectedStartNode = city;
+                    startCityBox.setValue(name);
+                } else {
+                    selectedEndNode = city;
+                    endCityBox.setValue(name);
+                }
+
+                selectingStart = !selectingStart;
+                drawGraph(canvas.getGraphicsContext2D(), (int) ((canvas.getHeight() - 100) / 80), (int) ((canvas.getWidth() - 100) / 80), 80, 50);
             });
         });
 
@@ -279,8 +295,24 @@ public class MainApplication extends Application {
 
                 City city = cityMap.get(cityName);
                 if (city != null) {
+                    Color fillColor = Color.LIGHTBLUE;
+
+                    if (city.equals(selectedStartNode)) {
+                        fillColor = Color.LIGHTGREEN;
+                    } else if (city.equals(selectedEndNode)) {
+                        fillColor = Color.ORANGERED;
+                    }
+
+                    gc.setFill(fillColor);
+                    gc.fillOval(cx - NODE_RADIUS, cy - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
+                    gc.setStroke(Color.GREY);
+                    gc.strokeOval(cx - NODE_RADIUS, cy - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
+                    gc.setFill(Color.BLACK);
+                    gc.fillText(cityName, cx - NODE_RADIUS, cy - NODE_RADIUS - 5);
+
                     cityNodes.put(new CircleNode(cx, cy, NODE_RADIUS), city);
                 }
+
             }
         }
     }
