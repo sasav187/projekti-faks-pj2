@@ -1,7 +1,6 @@
 package org.unibl.etf.pathfinder;
 
 import javafx.application.Application;
-import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -16,6 +15,7 @@ import org.unibl.etf.generator.TransportDataGenerator;
 import org.unibl.etf.model.City;
 import org.unibl.etf.model.Departure;
 import org.unibl.etf.model.Station;
+import org.unibl.etf.algo.RouteFinder;
 import org.unibl.etf.data.JsonLoader;
 
 import java.io.IOException;
@@ -25,13 +25,16 @@ public class MainApplication extends Application {
 
     private static final double NODE_RADIUS = 15;
 
-    private Map<String, City> cityMap; // učitani gradovi
+    private Map<String, City> cityMap;
     private final Map<CircleNode, City> cityNodes = new HashMap<>();
 
-    // UI elementi za detalje
     private ListView<String> cityListView = new ListView<>();
     private ListView<String> stationListView = new ListView<>();
     private ListView<String> departureListView = new ListView<>();
+    private ComboBox<String> startCityBox = new ComboBox<>();
+    private ComboBox<String> endCityBox = new ComboBox<>();
+    private ComboBox<RouteFinder.Criteria> criteriaBox = new ComboBox<>();
+    private ListView<String> resultRouteView = new ListView<>();
 
     @Override
     public void start(Stage primaryStage) {
@@ -102,7 +105,6 @@ public class MainApplication extends Application {
         Canvas canvas = new Canvas(width, height);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        // Panel detalja sa tri liste: gradovi, stanice, polasci
         VBox detailsBox = new VBox(10);
         detailsBox.setPadding(new Insets(10));
         detailsBox.setPrefWidth(350);
@@ -119,23 +121,80 @@ public class MainApplication extends Application {
         departureListView.setMinHeight(150);
         departureListView.setPrefHeight(200);
 
-        detailsBox.getChildren().addAll(cityLabel, cityListView, stationLabel, stationListView, departureLabel, departureListView);
+        Label routeLabel = new Label("Ruta");
+        resultRouteView.setMinHeight(150);
+        resultRouteView.setPrefHeight(200);
+
+        startCityBox.getItems().addAll(cityMap.keySet());
+        endCityBox.getItems().addAll(cityMap.keySet());
+        criteriaBox.getItems().addAll(RouteFinder.Criteria.values());
+        criteriaBox.getSelectionModel().selectFirst();
+
+        Button searchButton = new Button("Pronađi rutu");
+        Label totalLabel = new Label("Ukupno: ");
+
+        searchButton.setOnAction(e -> {
+            String from = startCityBox.getValue();
+            String to = endCityBox.getValue();
+            RouteFinder.Criteria crit = criteriaBox.getValue();
+            if (from != null && to != null && crit != null) {
+                RouteFinder rf = new RouteFinder(cityMap);
+                List<Departure> route = rf.findRoute(from, to, crit);
+                resultRouteView.getItems().clear();
+                int total = 0;
+                if (route.isEmpty() || from == to) {
+                    resultRouteView.getItems().add("Nema dostupne rute.");
+                } else {
+                    for (Departure d : route) {
+                        resultRouteView.getItems().add(d.from + " → " + d.to + " [" + d.type + "] " + d.departureTime +
+                                " | " + d.duration + "min | " + d.price + "KM");
+                        total += switch (crit) {
+                            case TIME -> d.duration;
+                            case PRICE -> d.price;
+                            case TRANSFERS -> 1;
+                        };
+                    }
+                    String unit = switch (crit) {
+                        case TIME -> "min ukupno";
+                        case PRICE -> "KM ukupno";
+                        case TRANSFERS -> "presjedanja";
+                    };
+                    totalLabel.setText("Ukupno: " + total + " " + unit);
+                }
+            }
+        });
+
+        detailsBox.getChildren().addAll(
+                cityLabel, cityListView,
+                stationLabel, stationListView,
+                departureLabel, departureListView,
+                new Label("Početni grad:"), startCityBox,
+                new Label("Odredišni grad:"), endCityBox,
+                new Label("Kriterijum:"), criteriaBox,
+                searchButton,
+                routeLabel, resultRouteView,
+                totalLabel
+        );
+
+        // Umotaj desni panel u ScrollPane da omogući skrolovanje
+        ScrollPane detailsScrollPane = new ScrollPane(detailsBox);
+        detailsScrollPane.setFitToWidth(true);
+        detailsScrollPane.setPrefWidth(400);
+        detailsScrollPane.setPadding(new Insets(10));
 
         graphRoot.setCenter(new ScrollPane(canvas));
-        graphRoot.setRight(detailsBox);
+        graphRoot.setRight(detailsScrollPane);
 
         drawGraph(gc, rows, cols, cellSize, padding);
 
-        // Podesi selekciju gradova iz liste i prikaz stanica i polazaka
         cityListView.getItems().clear();
         cityMap.values().forEach(city -> cityListView.getItems().add(city.getName()));
 
         cityListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             stationListView.getItems().clear();
             departureListView.getItems().clear();
-
             if (newVal != null) {
-                City city = cityMap.values().stream().filter(c -> c.getName().equals(newVal)).findFirst().orElse(null);
+                City city = cityMap.get(newVal);
                 if (city != null) {
                     Station bus = city.getBusStation();
                     Station train = city.getTrainStation();
@@ -147,21 +206,18 @@ public class MainApplication extends Application {
 
         stationListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             departureListView.getItems().clear();
-            if (newVal != null) {
-                String cityName = cityListView.getSelectionModel().getSelectedItem();
-                if (cityName != null) {
-                    City city = cityMap.values().stream().filter(c -> c.getName().equals(cityName)).findFirst().orElse(null);
-                    if (city != null) {
-                        Station station = newVal.toLowerCase().contains("bus") ? city.getBusStation() : city.getTrainStation();
-                        for (Departure d : station.getDepartures()) {
-                            departureListView.getItems().add(d.toString());
-                        }
+            String cityName = cityListView.getSelectionModel().getSelectedItem();
+            if (cityName != null && newVal != null) {
+                City city = cityMap.get(cityName);
+                if (city != null) {
+                    Station station = newVal.toLowerCase().contains("bus") ? city.getBusStation() : city.getTrainStation();
+                    for (Departure d : station.getDepartures()) {
+                        departureListView.getItems().add(d.toString());
                     }
                 }
             }
         });
 
-        // Detekcija klika na Canvas (grad)
         canvas.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             double xClick = event.getX();
             double yClick = event.getY();
@@ -171,19 +227,16 @@ public class MainApplication extends Application {
                     .map(Map.Entry::getValue)
                     .findFirst();
 
-            if (clickedCityOpt.isPresent()) {
-                City clickedCity = clickedCityOpt.get();
-                cityListView.getSelectionModel().select(clickedCity.getName());
-                cityListView.scrollTo(clickedCity.getName());
-            }
+            clickedCityOpt.ifPresent(city -> {
+                cityListView.getSelectionModel().select(city.getName());
+                cityListView.scrollTo(city.getName());
+            });
         });
 
         Scene scene = new Scene(graphRoot, width + 400, Math.max(height, 600));
-
         Stage stage = new Stage();
         stage.setTitle("Pathfinder - Mapa gradova (" + rows + " x " + cols + ")");
 
-        // Ako je prevelik ekran, fullscreen
         double screenW = Screen.getPrimary().getBounds().getWidth();
         double screenH = Screen.getPrimary().getBounds().getHeight();
 
@@ -210,24 +263,20 @@ public class MainApplication extends Application {
                 double cx = padding + y * cellSize;
                 double cy = padding + x * cellSize;
 
-                // Crtaj linije do suseda
                 if (x + 1 < rows)
                     gc.strokeLine(cx, cy, cx, padding + (x + 1) * cellSize);
                 if (y + 1 < cols)
                     gc.strokeLine(cx, cy, padding + (y + 1) * cellSize, cy);
 
-                // Crtaj čvor (grad)
                 gc.setFill(Color.LIGHTBLUE);
                 gc.fillOval(cx - NODE_RADIUS, cy - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
                 gc.setStroke(Color.GRAY);
                 gc.strokeOval(cx - NODE_RADIUS, cy - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
 
-                // Ime grada
                 String cityName = "G_" + x + "_" + y;
                 gc.setFill(Color.BLACK);
                 gc.fillText(cityName, cx - NODE_RADIUS, cy - NODE_RADIUS - 5);
 
-                // Poveži krug sa gradom
                 City city = cityMap.get(cityName);
                 if (city != null) {
                     cityNodes.put(new CircleNode(cx, cy, NODE_RADIUS), city);

@@ -2,9 +2,7 @@ package org.unibl.etf.data;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.unibl.etf.model.City;
-import org.unibl.etf.model.Departure;
-import org.unibl.etf.model.Station;
+import org.unibl.etf.model.*;
 
 import java.io.File;
 import java.io.IOException;
