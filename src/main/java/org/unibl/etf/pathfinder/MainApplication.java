@@ -1,6 +1,8 @@
 package org.unibl.etf.pathfinder;
 
 import javafx.application.Application;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -19,6 +21,8 @@ import org.unibl.etf.algo.RouteFinder;
 import org.unibl.etf.data.JsonLoader;
 
 import java.io.IOException;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MainApplication extends Application {
@@ -38,7 +42,7 @@ public class MainApplication extends Application {
     private ComboBox<String> startCityBox = new ComboBox<>();
     private ComboBox<String> endCityBox = new ComboBox<>();
     private ComboBox<RouteFinder.Criteria> criteriaBox = new ComboBox<>();
-    private ListView<String> resultRouteView = new ListView<>();
+    private TableView<Departure> routeTableView = new TableView<>();
 
     @Override
     public void start(Stage primaryStage) {
@@ -126,8 +130,35 @@ public class MainApplication extends Application {
         departureListView.setPrefHeight(200);
 
         Label routeLabel = new Label("Ruta");
-        resultRouteView.setMinHeight(150);
-        resultRouteView.setPrefHeight(200);
+
+        TableColumn<Departure, String> fromCol = new TableColumn<>("Polazak");
+        fromCol.setCellValueFactory(data -> {
+            String from = data.getValue().from;
+            String time = data.getValue().departureTime;
+            return new SimpleStringProperty(from + " (" + time + ")");
+        });
+
+        TableColumn<Departure, String> toCol = new TableColumn<>("Dolazak");
+        toCol.setCellValueFactory(data -> {
+            String to = data.getValue().to;
+            int minutes = data.getValue().duration;
+            String depTime = data.getValue().departureTime;
+
+            // Izračunaj dolazno vrijeme
+            String arrivalTime = computeArrivalTime(depTime, minutes);
+            return new SimpleStringProperty(to + " (" + arrivalTime + ")");
+        });
+
+        TableColumn<Departure, String> typeCol = new TableColumn<>("Tip");
+        typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().type));
+
+        TableColumn<Departure, Integer> priceCol = new TableColumn<>("Cijena");
+        priceCol.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().price).asObject());
+
+        routeTableView.getColumns().addAll(fromCol, toCol, typeCol, priceCol);
+
+        routeTableView.setPrefHeight(200);
+
 
         startCityBox.getItems().addAll(cityMap.keySet());
         endCityBox.getItems().addAll(cityMap.keySet());
@@ -144,14 +175,13 @@ public class MainApplication extends Application {
             if (from != null && to != null && crit != null) {
                 RouteFinder rf = new RouteFinder(cityMap);
                 List<Departure> route = rf.findRoute(from, to, crit);
-                resultRouteView.getItems().clear();
-                int total = 0;
-                if (route.isEmpty() || from == to) {
-                    resultRouteView.getItems().add("Nema dostupne rute.");
+                routeTableView.getItems().clear();
+                if (route.isEmpty() || from.equals(to)) {
+                    totalLabel.setText("Nema dostupne rute.");
                 } else {
+                    routeTableView.getItems().addAll(route);
+                    int total = 0;
                     for (Departure d : route) {
-                        resultRouteView.getItems().add(d.from + " → " + d.to + " [" + d.type + "] " + d.departureTime +
-                                " | " + d.duration + "min | " + d.price + "KM");
                         total += switch (crit) {
                             case TIME -> d.duration;
                             case PRICE -> d.price;
@@ -163,7 +193,17 @@ public class MainApplication extends Application {
                         case PRICE -> "KM ukupno";
                         case TRANSFERS -> "presjedanja";
                     };
-                    totalLabel.setText("Ukupno: " + total + " " + unit);
+                    if (!route.isEmpty()) {
+                        int totalPrice = route.stream().mapToInt(d -> d.price).sum();
+                        int totalTime = route.stream().mapToInt(d -> d.duration).sum();
+
+                        int hours = totalTime / 60;
+                        int minutes = totalTime % 60;
+
+                        totalLabel.setText("Ukupno: " + hours + "h " + minutes + "min, " + totalPrice + " novčanih jedinica.");
+                    } else {
+                        totalLabel.setText("Nema dostupne rute.");
+                    }
                 }
             }
         });
@@ -176,9 +216,10 @@ public class MainApplication extends Application {
                 new Label("Odredišni grad:"), endCityBox,
                 new Label("Kriterijum:"), criteriaBox,
                 searchButton,
-                routeLabel, resultRouteView,
+                routeLabel, routeTableView,
                 totalLabel
         );
+
 
         // Umotaj desni panel u ScrollPane da omogući skrolovanje
         ScrollPane detailsScrollPane = new ScrollPane(detailsBox);
@@ -266,6 +307,18 @@ public class MainApplication extends Application {
         stage.setScene(scene);
         stage.show();
     }
+
+    private String computeArrivalTime(String depTime, int duration) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            LocalTime time = LocalTime.parse(depTime, formatter);
+            time = time.plusMinutes(duration);
+            return time.format(formatter);
+        } catch (Exception e) {
+            return "??:??";
+        }
+    }
+
 
     private void drawGraph(GraphicsContext gc, int rows, int cols, int cellSize, int padding) {
         gc.clearRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
