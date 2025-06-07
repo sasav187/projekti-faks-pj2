@@ -1,5 +1,8 @@
 package org.unibl.etf.model;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 public class Departure {
     public String type;
     public String from;
@@ -18,6 +21,14 @@ public class Departure {
         this.duration = duration;
         this.price = price;
         this.minTransferTime = minTransferTime;
+    }
+
+    public LocalTime getDepartureTime() {
+        return LocalTime.parse(departureTime);
+    }
+
+    public LocalTime getArrivalTime() {
+        return LocalTime.parse(departureTime).plusMinutes(duration);
     }
 
     @Override

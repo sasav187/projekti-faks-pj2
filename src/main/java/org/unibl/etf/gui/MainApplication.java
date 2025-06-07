@@ -1,4 +1,4 @@
-package org.unibl.etf.pathfinder;
+package org.unibl.etf.gui;
 
 import javafx.application.Application;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -21,6 +21,9 @@ import org.unibl.etf.algo.RouteFinder;
 import org.unibl.etf.data.JsonLoader;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -164,6 +167,7 @@ public class MainApplication extends Application {
         endCityBox.getItems().addAll(cityMap.keySet());
         criteriaBox.getItems().addAll(RouteFinder.Criteria.values());
         criteriaBox.getSelectionModel().selectFirst();
+        criteriaBox.setValue(RouteFinder.Criteria.TIME);
 
         Button searchButton = new Button("Pronađi rutu");
         Label totalLabel = new Label("Ukupno: ");
@@ -194,17 +198,55 @@ public class MainApplication extends Application {
                         case TRANSFERS -> "presjedanja";
                     };
                     if (!route.isEmpty()) {
-                        int totalPrice = route.stream().mapToInt(d -> d.price).sum();
-                        int totalTime = route.stream().mapToInt(d -> d.duration).sum();
 
-                        int hours = totalTime / 60;
-                        int minutes = totalTime % 60;
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
 
-                        totalLabel.setText("Ukupno: " + hours + "h " + minutes + "min, " + totalPrice + " novčanih jedinica.");
+                        try {
+                            LocalDate currentDate = LocalDate.now();
+
+                            List<LocalDateTime> departures = new ArrayList<>();
+                            List<LocalDateTime> arrivals = new ArrayList<>();
+
+                            LocalDateTime lastDateTime = null;
+
+                            for (Departure d : route) {
+                                LocalTime depTime = LocalTime.parse(d.departureTime, formatter);
+                                LocalDateTime depDateTime = LocalDateTime.of(currentDate, depTime);
+
+                                // Ako je polazak prije prethodnog dolaska, znači prelazimo dan
+                                if (lastDateTime != null && depDateTime.isBefore(lastDateTime)) {
+                                    currentDate = currentDate.plusDays(1);
+                                    depDateTime = LocalDateTime.of(currentDate, depTime);
+                                }
+
+                                LocalDateTime arrDateTime = depDateTime.plusMinutes(d.duration);
+                                lastDateTime = arrDateTime;
+
+                                departures.add(depDateTime);
+                                arrivals.add(arrDateTime);
+                            }
+
+                            LocalDateTime firstDeparture = departures.get(0);
+                            LocalDateTime lastArrival = arrivals.get(arrivals.size() - 1);
+
+                            Duration totalDuration = Duration.between(firstDeparture, lastArrival);
+                            long totalMinutes = totalDuration.toMinutes();
+                            int hours = (int) (totalMinutes / 60);
+                            int minutes = (int) (totalMinutes % 60);
+
+                            int totalPrice = route.stream().mapToInt(d -> d.price).sum();
+                            totalLabel.setText("Ukupno: " + hours + "h " + minutes + "min, " + totalPrice + " novčanih jedinica.");
+
+                        } catch (Exception ex) {
+                            totalLabel.setText("Greška u računanju vremena.");
+                        }
+
                     } else {
                         totalLabel.setText("Nema dostupne rute.");
                     }
+
                 }
+
             }
         });
 
