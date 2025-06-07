@@ -23,12 +23,4 @@ public class City {
     public Station getTrainStation() {
         return trainStation;
     }
-
-    @Override
-    public String toString() {
-        return String.format("Grad: %s (Bus: %s, Voz: %s)",
-                name, busStation.getId(), trainStation.getId());
-    }
-
-
 }

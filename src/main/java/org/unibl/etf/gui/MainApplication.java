@@ -125,8 +125,7 @@ public class MainApplication extends Application {
         cityListView.setPrefHeight(200);
 
         Label stationLabel = new Label("Stanice");
-        stationListView.setMinHeight(100);
-        stationListView.setPrefHeight(150);
+        stationListView.setMaxHeight(50);
 
         Label departureLabel = new Label("Polasci");
         departureListView.setMinHeight(150);
@@ -162,7 +161,6 @@ public class MainApplication extends Application {
 
         routeTableView.setPrefHeight(200);
 
-
         startCityBox.getItems().addAll(cityMap.keySet());
         endCityBox.getItems().addAll(cityMap.keySet());
         criteriaBox.getItems().addAll(RouteFinder.Criteria.values());
@@ -184,19 +182,6 @@ public class MainApplication extends Application {
                     totalLabel.setText("Nema dostupne rute.");
                 } else {
                     routeTableView.getItems().addAll(route);
-                    int total = 0;
-                    for (Departure d : route) {
-                        total += switch (crit) {
-                            case TIME -> d.duration;
-                            case PRICE -> d.price;
-                            case TRANSFERS -> 1;
-                        };
-                    }
-                    String unit = switch (crit) {
-                        case TIME -> "min ukupno";
-                        case PRICE -> "KM ukupno";
-                        case TRANSFERS -> "presjedanja";
-                    };
                     if (!route.isEmpty()) {
 
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");

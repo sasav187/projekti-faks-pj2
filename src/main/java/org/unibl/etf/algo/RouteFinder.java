@@ -30,8 +30,6 @@ public class RouteFinder {
         };
     }
 
-    // ---------------------- NAJKRAĆE VRIJEME (RAČUNA TRANSFERE) ----------------------
-
     private List<Departure> findFastestRoute(String start, String end) {
         class Node {
             String city;
@@ -60,7 +58,7 @@ public class RouteFinder {
                 List<Departure> initialPath = new ArrayList<>();
                 initialPath.add(d);
                 LocalDateTime departureDateTime = LocalDateTime.of(today, d.getDepartureTime());
-                LocalDateTime arrivalDateTime = departureDateTime.plusMinutes(d.duration);
+                LocalDateTime arrivalDateTime = LocalDateTime.of(today, d.getArrivalTime());
                 long totalMinutes = ChronoUnit.MINUTES.between(departureDateTime, arrivalDateTime);
                 queue.add(new Node(d.to, initialPath, arrivalDateTime, totalMinutes));
             }
@@ -106,9 +104,6 @@ public class RouteFinder {
 
         return Collections.emptyList();
     }
-
-
-    // ---------------------- DIJKSTRA ZA CIJENU ----------------------
 
     private List<Departure> dijkstra(String start, String end, Criteria criteria) {
         class Node {
@@ -156,8 +151,6 @@ public class RouteFinder {
             case TRANSFERS -> 1;
         };
     }
-
-    // ---------------------- BFS ZA BROJ TRANSFERA ----------------------
 
     private List<Departure> bfs(String start, String end) {
         Queue<List<Departure>> queue = new LinkedList<>();

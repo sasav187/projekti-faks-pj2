@@ -23,9 +23,4 @@ public class Station {
         departures.add(departure);
     }
 
-    @Override
-    public String toString() {
-        return String.format("Stanica %s, broj polazaka: %d", id, departures.size());
-    }
-
 }
