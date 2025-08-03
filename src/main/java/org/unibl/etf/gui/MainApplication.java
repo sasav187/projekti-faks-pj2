@@ -3,6 +3,7 @@ package org.unibl.etf.gui;
 import javafx.application.Application;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -20,7 +21,6 @@ import org.unibl.etf.model.Station;
 import org.unibl.etf.algo.RouteFinder;
 import org.unibl.etf.data.JsonLoader;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -84,22 +84,35 @@ public class MainApplication extends Application {
                 int rows = Integer.parseInt(rowsField.getText());
                 int cols = Integer.parseInt(colsField.getText());
 
-                TransportDataGenerator generator = new TransportDataGenerator(rows, cols);
-                TransportDataGenerator.TransportData data = generator.generateData();
-                generator.saveToJson(data, "transport_data.json");
+                statusLabel.setText("Generišem...");
 
-                cityMap = JsonLoader.loadCityMap("transport_data.json");
+                Task<Void> task = new Task<>() {
+                    @Override
+                    protected Void call() throws Exception {
+                        TransportDataGenerator generator = new TransportDataGenerator(rows, cols);
+                        TransportDataGenerator.TransportData data = generator.generateData();
+                        generator.saveToJson(data, "transport_data.json");
+                        cityMap = JsonLoader.loadCityMap("transport_data.json");
+                        return null;
+                    }
 
-                showGraphWindow(rows, cols);
+                    @Override
+                    protected void succeeded() {
+                        showGraphWindow(rows, cols);
+                        statusLabel.setText("Mapa generisana i prikazana.");
+                    }
 
-                statusLabel.setText("Mapa generisana i prikazana.");
+                    @Override
+                    protected void failed() {
+                        Throwable ex = getException();
+                        statusLabel.setText("Greška: " + (ex != null ? ex.getMessage() : "Nepoznata greška."));
+                    }
+                };
+
+                new Thread(task).start();
 
             } catch (NumberFormatException ex) {
                 statusLabel.setText("Unesite ispravne brojeve za redove i kolone.");
-            } catch (IOException ex) {
-                statusLabel.setText("Greška pri učitavanju JSON-a: " + ex.getMessage());
-            } catch (Exception ex) {
-                statusLabel.setText("Greška: " + ex.getMessage());
             }
         });
     }
@@ -128,8 +141,7 @@ public class MainApplication extends Application {
         stationListView.setMaxHeight(50);
 
         Label departureLabel = new Label("Polasci");
-        departureListView.setMinHeight(150);
-        departureListView.setPrefHeight(200);
+        departureListView.setMaxHeight(150);
 
         Label routeLabel = new Label("Ruta");
 
@@ -146,7 +158,6 @@ public class MainApplication extends Application {
             int minutes = data.getValue().duration;
             String depTime = data.getValue().departureTime;
 
-            // Izračunaj dolazno vrijeme
             String arrivalTime = computeArrivalTime(depTime, minutes);
             return new SimpleStringProperty(to + " (" + arrivalTime + ")");
         });
@@ -174,31 +185,43 @@ public class MainApplication extends Application {
             String from = startCityBox.getValue();
             String to = endCityBox.getValue();
             RouteFinder.Criteria crit = criteriaBox.getValue();
-            if (from != null && to != null && crit != null) {
-                RouteFinder rf = new RouteFinder(cityMap);
-                List<Departure> route = rf.findRoute(from, to, crit);
-                routeTableView.getItems().clear();
-                if (route.isEmpty() || from.equals(to)) {
-                    totalLabel.setText("Nema dostupne rute.");
-                } else {
-                    routeTableView.getItems().addAll(route);
-                    if (!route.isEmpty()) {
 
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            if (from == null || to == null || crit == null) {
+                totalLabel.setText("Molimo odaberite sve parametre.");
+                return;
+            }
+
+            totalLabel.setText("Tražim rutu...");
+
+            Task<List<Departure>> task = new Task<>() {
+                @Override
+                protected List<Departure> call() {
+                    RouteFinder rf = new RouteFinder(cityMap);
+                    return rf.findRoute(from, to, crit);
+                }
+
+                @Override
+                protected void succeeded() {
+                    List<Departure> route = getValue();
+                    routeTableView.getItems().clear();
+
+                    if (route.isEmpty() || from.equals(to)) {
+                        totalLabel.setText("Nema dostupne rute.");
+                    } else {
+                        routeTableView.getItems().addAll(route);
 
                         try {
+                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
                             LocalDate currentDate = LocalDate.now();
 
                             List<LocalDateTime> departures = new ArrayList<>();
                             List<LocalDateTime> arrivals = new ArrayList<>();
-
                             LocalDateTime lastDateTime = null;
 
                             for (Departure d : route) {
                                 LocalTime depTime = LocalTime.parse(d.departureTime, formatter);
                                 LocalDateTime depDateTime = LocalDateTime.of(currentDate, depTime);
 
-                                // Ako je polazak prije prethodnog dolaska, znači prelazimo dan
                                 if (lastDateTime != null && depDateTime.isBefore(lastDateTime)) {
                                     currentDate = currentDate.plusDays(1);
                                     depDateTime = LocalDateTime.of(currentDate, depTime);
@@ -213,8 +236,8 @@ public class MainApplication extends Application {
 
                             LocalDateTime firstDeparture = departures.get(0);
                             LocalDateTime lastArrival = arrivals.get(arrivals.size() - 1);
-
                             Duration totalDuration = Duration.between(firstDeparture, lastArrival);
+
                             long totalMinutes = totalDuration.toMinutes();
                             int hours = (int) (totalMinutes / 60);
                             int minutes = (int) (totalMinutes % 60);
@@ -225,15 +248,19 @@ public class MainApplication extends Application {
                         } catch (Exception ex) {
                             totalLabel.setText("Greška u računanju vremena.");
                         }
-
-                    } else {
-                        totalLabel.setText("Nema dostupne rute.");
                     }
-
                 }
 
-            }
+                @Override
+                protected void failed() {
+                    totalLabel.setText("Greška prilikom traženja rute.");
+                    getException().printStackTrace();
+                }
+            };
+
+            new Thread(task).start();
         });
+
 
         detailsBox.getChildren().addAll(
                 cityLabel, cityListView,
@@ -247,8 +274,6 @@ public class MainApplication extends Application {
                 totalLabel
         );
 
-
-        // Umotaj desni panel u ScrollPane da omogući skrolovanje
         ScrollPane detailsScrollPane = new ScrollPane(detailsBox);
         detailsScrollPane.setFitToWidth(true);
         detailsScrollPane.setPrefWidth(400);
@@ -313,7 +338,9 @@ public class MainApplication extends Application {
                 }
 
                 selectingStart = !selectingStart;
-                drawGraph(canvas.getGraphicsContext2D(), (int) ((canvas.getHeight() - 100) / 80), (int) ((canvas.getWidth() - 100) / 80), 80, 50);
+                drawGraph(canvas.getGraphicsContext2D(),
+                        (int) ((canvas.getHeight() - 100) / 80),
+                        (int) ((canvas.getWidth() - 100) / 80), 80, 50);
             });
         });
 
@@ -345,7 +372,6 @@ public class MainApplication extends Application {
             return "??:??";
         }
     }
-
 
     private void drawGraph(GraphicsContext gc, int rows, int cols, int cellSize, int padding) {
         gc.clearRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());

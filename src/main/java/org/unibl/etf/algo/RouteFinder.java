@@ -6,7 +6,6 @@ import org.unibl.etf.model.Station;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -16,6 +15,7 @@ public class RouteFinder {
         TIME, PRICE, TRANSFERS
     }
 
+    private static final int MAX_TRANSFERS = 20;
     private final Map<String, City> cityMap;
 
     public RouteFinder(Map<String, City> cityMap) {
@@ -30,7 +30,20 @@ public class RouteFinder {
         };
     }
 
+    public List<List<Departure>> findTopRoutes(String startCity, String endCity, Criteria criteria, int limit) {
+        return switch (criteria) {
+            case TIME -> findTopFastestRoutes(startCity, endCity, limit);
+            case PRICE -> findTopByDijkstra(startCity, endCity, limit, Criteria.PRICE);
+            case TRANSFERS -> findTopByDijkstra(startCity, endCity, limit, Criteria.TRANSFERS);
+        };
+    }
+
     private List<Departure> findFastestRoute(String start, String end) {
+        List<List<Departure>> top = findTopFastestRoutes(start, end, 1);
+        return top.isEmpty() ? Collections.emptyList() : top.get(0);
+    }
+
+    private List<List<Departure>> findTopFastestRoutes(String start, String end, int limit) {
         class Node {
             String city;
             List<Departure> path;
@@ -46,66 +59,69 @@ public class RouteFinder {
         }
 
         PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparingLong(n -> n.totalMinutes));
-        Set<String> visited = new HashSet<>();
+        Map<String, Integer> visited = new HashMap<>();
+        List<List<Departure>> results = new ArrayList<>();
+        LocalDate today = LocalDate.now();
 
         City startCity = cityMap.get(start);
-        if (startCity == null) return Collections.emptyList();
-
-        LocalDate today = LocalDate.now(); // Polazni dan
+        if (startCity == null) return results;
 
         for (Station s : List.of(startCity.getBusStation(), startCity.getTrainStation())) {
             for (Departure d : s.getDepartures()) {
-                List<Departure> initialPath = new ArrayList<>();
-                initialPath.add(d);
-                LocalDateTime departureDateTime = LocalDateTime.of(today, d.getDepartureTime());
-                LocalDateTime arrivalDateTime = LocalDateTime.of(today, d.getArrivalTime());
-                long totalMinutes = ChronoUnit.MINUTES.between(departureDateTime, arrivalDateTime);
-                queue.add(new Node(d.to, initialPath, arrivalDateTime, totalMinutes));
+                List<Departure> path = new ArrayList<>();
+                path.add(d);
+                LocalDateTime depTime = LocalDateTime.of(today, d.getDepartureTime());
+                LocalDateTime arrTime = depTime.plusMinutes(d.duration);
+                long totalMinutes = ChronoUnit.MINUTES.between(depTime, arrTime);
+                queue.add(new Node(d.to, path, arrTime, totalMinutes));
             }
         }
 
-        while (!queue.isEmpty()) {
+        while (!queue.isEmpty() && results.size() < limit) {
             Node node = queue.poll();
 
-            if (node.city.equals(end)) return node.path;
-            if (!visited.add(node.city)) continue;
+            if (node.path.size() > MAX_TRANSFERS) continue;
 
-            City city = cityMap.get(node.city);
-            if (city == null) continue;
+            int previousTransfers = visited.getOrDefault(node.city, Integer.MAX_VALUE);
+            if (node.path.size() >= previousTransfers) continue;
+            visited.put(node.city, node.path.size());
 
-            for (Station s : List.of(city.getBusStation(), city.getTrainStation())) {
+            if (node.city.equals(end)) {
+                results.add(node.path);
+                continue;
+            }
+
+            City current = cityMap.get(node.city);
+            if (current == null) continue;
+
+            for (Station s : List.of(current.getBusStation(), current.getTrainStation())) {
                 for (Departure d : s.getDepartures()) {
-                    if (!visited.contains(d.to)) {
+                    LocalDateTime earliest = node.arrivalDateTime.plusMinutes(d.minTransferTime);
+                    LocalDateTime depDateTime = LocalDateTime.of(earliest.toLocalDate(), d.getDepartureTime());
+                    if (depDateTime.isBefore(earliest)) depDateTime = depDateTime.plusDays(1);
+                    LocalDateTime arrDateTime = depDateTime.plusMinutes(d.duration);
 
-                        // Minimalno vrijeme presjedanja
-                        LocalDateTime earliestPossibleDeparture = node.arrivalDateTime.plusMinutes(d.minTransferTime);
-                        LocalTime candidateDepartureTime = d.getDepartureTime();
-                        LocalDateTime departureDateTime = LocalDateTime.of(earliestPossibleDeparture.toLocalDate(), candidateDepartureTime);
+                    long totalMinutes = ChronoUnit.MINUTES.between(
+                            node.path.get(0).getDepartureTime().atDate(today),
+                            arrDateTime
+                    );
 
-                        // Ako bi vožnja krenula ranije od minimalnog transfera (npr. prelaz preko ponoći)
-                        if (departureDateTime.isBefore(earliestPossibleDeparture)) {
-                            departureDateTime = departureDateTime.plusDays(1);
-                        }
-
-                        // Sada možemo računati
-                        LocalDateTime arrivalDateTime = departureDateTime.plusMinutes(d.duration);
-                        long totalMinutes = ChronoUnit.MINUTES.between(
-                                node.path.get(0).getDepartureTime().atDate(today),
-                                arrivalDateTime
-                        );
-
-                        List<Departure> newPath = new ArrayList<>(node.path);
-                        newPath.add(d);
-                        queue.add(new Node(d.to, newPath, arrivalDateTime, totalMinutes));
-                    }
+                    List<Departure> newPath = new ArrayList<>(node.path);
+                    newPath.add(d);
+                    queue.add(new Node(d.to, newPath, arrDateTime, totalMinutes));
                 }
             }
         }
 
-        return Collections.emptyList();
+        return results;
     }
 
     private List<Departure> dijkstra(String start, String end, Criteria criteria) {
+        List<List<Departure>> top = findTopByDijkstra(start, end, 1, criteria);
+        return top.isEmpty() ? Collections.emptyList() : top.get(0);
+    }
+
+    private List<List<Departure>> findTopByDijkstra(String start, String end, int limit, Criteria criteria) {
         class Node {
             String city;
             List<Departure> path;
@@ -119,29 +135,39 @@ public class RouteFinder {
         }
 
         PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparingInt(n -> n.cost));
-        Set<String> visited = new HashSet<>();
+        Map<String, Integer> visited = new HashMap<>();
+        List<List<Departure>> results = new ArrayList<>();
+
         queue.add(new Node(start, new ArrayList<>(), 0));
 
-        while (!queue.isEmpty()) {
+        while (!queue.isEmpty() && results.size() < limit) {
             Node node = queue.poll();
-            if (!visited.add(node.city)) continue;
-            if (node.city.equals(end)) return node.path;
+
+            if (node.path.size() > MAX_TRANSFERS) continue;
+
+            int previousCost = visited.getOrDefault(node.city, Integer.MAX_VALUE);
+            if (node.cost >= previousCost) continue;
+            visited.put(node.city, node.cost);
+
+            if (node.city.equals(end)) {
+                results.add(node.path);
+                continue;
+            }
 
             City city = cityMap.get(node.city);
             if (city == null) continue;
 
             for (Station s : List.of(city.getBusStation(), city.getTrainStation())) {
                 for (Departure d : s.getDepartures()) {
-                    if (!visited.contains(d.to)) {
-                        List<Departure> newPath = new ArrayList<>(node.path);
-                        newPath.add(d);
-                        int cost = node.cost + getCost(d, criteria);
-                        queue.add(new Node(d.to, newPath, cost));
-                    }
+                    List<Departure> newPath = new ArrayList<>(node.path);
+                    newPath.add(d);
+                    int cost = node.cost + getCost(d, criteria);
+                    queue.add(new Node(d.to, newPath, cost));
                 }
             }
         }
-        return Collections.emptyList();
+
+        return results;
     }
 
     private int getCost(Departure d, Criteria criteria) {
@@ -155,7 +181,6 @@ public class RouteFinder {
     private List<Departure> bfs(String start, String end) {
         Queue<List<Departure>> queue = new LinkedList<>();
         Set<String> visited = new HashSet<>();
-        visited.add(start);
 
         City startCity = cityMap.get(start);
         if (startCity == null) return Collections.emptyList();
@@ -170,6 +195,8 @@ public class RouteFinder {
 
         while (!queue.isEmpty()) {
             List<Departure> path = queue.poll();
+            if (path.size() > MAX_TRANSFERS) continue;
+
             Departure last = path.get(path.size() - 1);
             if (last.to.equals(end)) return path;
             if (!visited.add(last.to)) continue;
