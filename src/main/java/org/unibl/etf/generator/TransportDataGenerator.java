@@ -15,21 +15,6 @@ public class TransportDataGenerator {
         this.cols = cols;
     }
 
-    public static void main(String[] args) {
-        if (args.length < 2) {
-            System.out.println("Poziv: java TransportDataGenerator <broj_redova> <broj_kolona>");
-            return;
-        }
-
-        int rows = Integer.parseInt(args[0]);
-        int cols = Integer.parseInt(args[1]);
-
-        TransportDataGenerator generator = new TransportDataGenerator(rows, cols);
-        TransportData data = generator.generateData();
-        generator.saveToJson(data, "transport_data.json");
-        System.out.println("Podaci su generisani i sacuvani kao transport_data.json");
-    }
-
     public static class TransportData {
         public String[][] countryMap;
         public List<Station> stations;
