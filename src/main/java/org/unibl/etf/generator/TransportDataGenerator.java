@@ -7,7 +7,7 @@ import java.util.*;
 public class TransportDataGenerator {
     private int rows;
     private int cols;
-    private static final int DEPARTURES_PER_STATION = 5;
+    private static final int DEPARTURES_PER_STATION = 2;
     private static final Random random = new Random();
 
     public TransportDataGenerator(int rows, int cols) {

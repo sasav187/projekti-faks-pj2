@@ -45,6 +45,7 @@ public class GraphWindow {
     private ComboBox<RouteFinder.Criteria> criteriaBox = new ComboBox<>();
     private TableView<Departure> routeTableView = new TableView<>();
     private Label totalLabel = new Label("Ukupno: ");
+    private List<Departure> bestRoute = new ArrayList<>(); // Store the best route for highlighting
 
     private final TransportGraphPainter graphPainter;
 
@@ -121,6 +122,12 @@ public class GraphWindow {
         Button searchButton = new Button("Pronađi rutu");
         searchButton.setOnAction(e -> handleSearchAction());
 
+        Button top5RoutesButton = new Button("Pronađi top 5 ruta");
+        top5RoutesButton.setOnAction(e -> handleTop5RoutesAction());
+
+        Button clearRouteButton = new Button("Ukloni prikaz rute");
+        clearRouteButton.setOnAction(e -> clearRouteHighlight());
+
         detailsBox.getChildren().addAll(
                 cityLabel, cityListView,
                 stationLabel, stationListView,
@@ -129,6 +136,8 @@ public class GraphWindow {
                 new Label("Odredišni grad:"), endCityBox,
                 new Label("Kriterijum:"), criteriaBox,
                 searchButton,
+                top5RoutesButton,
+                clearRouteButton,
                 routeLabel, routeTableView,
                 totalLabel
         );
@@ -220,6 +229,8 @@ public class GraphWindow {
                 }
 
                 selectingStart = !selectingStart;
+                // Clear the best route when user selects new cities
+                bestRoute.clear();
                 graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
             });
         });
@@ -251,9 +262,13 @@ public class GraphWindow {
 
                 if (route.isEmpty() || from.equals(to)) {
                     totalLabel.setText("Nema dostupne rute.");
+                    bestRoute.clear();
                 } else {
                     routeTableView.getItems().addAll(route);
                     calculateAndDisplayTotal(route);
+                    // Store the best route and highlight it on the graph
+                    bestRoute = new ArrayList<>(route);
+                    highlightBestRoute();
                 }
             }
 
@@ -261,9 +276,63 @@ public class GraphWindow {
             protected void failed() {
                 totalLabel.setText("Greška prilikom traženja rute.");
                 getException().printStackTrace();
+                // Clear highlighting on error
+                bestRoute.clear();
+                graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
             }
         };
         new Thread(task).start();
+    }
+
+    private void handleTop5RoutesAction() {
+        String from = startCityBox.getValue();
+        String to = endCityBox.getValue();
+        RouteFinder.Criteria crit = criteriaBox.getValue();
+
+        if (from == null || to == null || crit == null) {
+            totalLabel.setText("Molimo odaberite sve parametre.");
+            return;
+        }
+
+        if (from.equals(to)) {
+            totalLabel.setText("Početni i odredišni grad ne mogu biti isti.");
+            return;
+        }
+
+        // Find and highlight the best route for the selected criteria
+        Task<List<Departure>> task = new Task<>() {
+            @Override
+            protected List<Departure> call() {
+                RouteFinder rf = new RouteFinder(cityMap);
+                return rf.findBestRoute(from, to, crit);
+            }
+
+            @Override
+            protected void succeeded() {
+                List<Departure> route = getValue();
+                if (!route.isEmpty()) {
+                    // Store and highlight the best route
+                    bestRoute = new ArrayList<>(route);
+                    highlightBestRoute();
+                } else {
+                    bestRoute.clear();
+                    graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
+                    totalLabel.setText("Nema dostupne rute.");
+                }
+            }
+
+            @Override
+            protected void failed() {
+                totalLabel.setText("Greška prilikom traženja najbolje rute.");
+                getException().printStackTrace();
+                bestRoute.clear();
+                graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
+            }
+        };
+        new Thread(task).start();
+
+        // Open the TopRoutesWindow to show all routes
+        new TopRoutesWindow(cityMap, from, to, crit).show();
     }
 
     private void calculateAndDisplayTotal(List<Departure> route) {
@@ -307,5 +376,21 @@ public class GraphWindow {
         } catch (Exception e) {
             return "??:??";
         }
+    }
+
+    private void highlightBestRoute() {
+        if (bestRoute.isEmpty()) {
+            // Clear highlighting if no route
+            graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
+        } else {
+            // Highlight the best route on the graph
+            graphPainter.drawGraphWithRoute(rows, cols, selectedStartNode, selectedEndNode, bestRoute);
+        }
+    }
+
+    private void clearRouteHighlight() {
+        bestRoute.clear();
+        graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
+        totalLabel.setText("Prikaz rute uklonjen.");
     }
 }
