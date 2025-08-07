@@ -93,7 +93,6 @@ public class TransportGraphPainter {
         int cellSize = 80;
         int padding = 50;
 
-        // Draw the basic grid first
         for (int x = 0; x < rows; x++) {
             for (int y = 0; y < cols; y++) {
                 double cx = padding + y * cellSize;
@@ -128,18 +127,15 @@ public class TransportGraphPainter {
             }
         }
 
-        // Draw the route path with highlighting
         if (!route.isEmpty()) {
             gc.setStroke(Color.RED);
             gc.setLineWidth(4);
-            
-            // Draw connections between cities in the route
+
             for (int i = 0; i < route.size(); i++) {
                 Departure dep = route.get(i);
                 String fromCity = dep.from;
                 String toCity = dep.to;
-                
-                // Find the coordinates of the cities
+
                 double fromX = 0, fromY = 0, toX = 0, toY = 0;
                 boolean foundFrom = false, foundTo = false;
                 
@@ -160,10 +156,8 @@ public class TransportGraphPainter {
                 }
                 
                 if (foundFrom && foundTo) {
-                    // Draw the route line
                     gc.strokeLine(fromX, fromY, toX, toY);
-                    
-                    // Add arrow head to show direction
+
                     double angle = Math.atan2(toY - fromY, toX - fromX);
                     double arrowLength = 10;
                     double arrowAngle = Math.PI / 6;
@@ -177,8 +171,7 @@ public class TransportGraphPainter {
                     gc.strokeLine(toX, toY, arrowX2, arrowY2);
                 }
             }
-            
-            // Highlight route cities with a different color
+
             gc.setFill(Color.YELLOW);
             for (Departure dep : route) {
                 String cityName = dep.to;
@@ -188,12 +181,10 @@ public class TransportGraphPainter {
                         if (gridCityName.equals(cityName)) {
                             double cx = padding + y * cellSize;
                             double cy = padding + x * cellSize;
-                            
-                            // Draw a yellow highlight circle
+
                             gc.setFill(Color.YELLOW);
                             gc.fillOval(cx - NODE_RADIUS - 2, cy - NODE_RADIUS - 2, (NODE_RADIUS + 4) * 2, (NODE_RADIUS + 4) * 2);
-                            
-                            // Redraw the city node on top
+
                             City city = cityMap.get(cityName);
                             if (city != null) {
                                 Color fillColor = Color.LIGHTBLUE;

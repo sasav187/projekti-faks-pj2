@@ -19,10 +19,9 @@ public class ReceiptStatistics {
         try {
             Path receiptsPath = Paths.get(RECEIPTS_DIR);
             if (!Files.exists(receiptsPath)) {
-                return stats; // Return empty stats if directory doesn't exist
+                return stats;
             }
-            
-            // Count all .txt files in receipts directory
+
             List<Path> receiptFiles = Files.walk(receiptsPath)
                     .filter(path -> path.toString().endsWith(".txt"))
                     .toList();

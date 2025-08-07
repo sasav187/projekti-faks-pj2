@@ -45,7 +45,7 @@ public class GraphWindow {
     private ComboBox<RouteFinder.Criteria> criteriaBox = new ComboBox<>();
     private TableView<Departure> routeTableView = new TableView<>();
     private Label totalLabel = new Label("Ukupno: ");
-    private List<Departure> bestRoute = new ArrayList<>(); // Store the best route for highlighting
+    private List<Departure> bestRoute = new ArrayList<>();
 
     private final TransportGraphPainter graphPainter;
 
@@ -106,30 +106,25 @@ public class GraphWindow {
         detailsBox.setPrefWidth(400);
         detailsBox.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1;");
 
-        // Header section
         Label headerLabel = new Label("INFORMACIJE O GRADOVIMA");
         headerLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2E86AB; -fx-padding: 0 0 10 0;");
 
-        // Cities section
         Label cityLabel = new Label("Gradovi");
         cityLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
         cityListView.setMinHeight(120);
         cityListView.setPrefHeight(150);
         cityListView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
-        // Stations section
         Label stationLabel = new Label("Stanice");
         stationLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
         stationListView.setMaxHeight(60);
         stationListView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
-        // Departures section
         Label departureLabel = new Label("Polasci");
         departureLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
         departureListView.setMaxHeight(150);
         departureListView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
-        // Search section
         Label searchSectionLabel = new Label("PRETRAGA RUTA");
         searchSectionLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2E86AB; -fx-padding: 10 0 10 0;");
 
@@ -145,7 +140,6 @@ public class GraphWindow {
         criteriaLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #495057;");
         criteriaBox.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
-        // Buttons
         Button searchButton = new Button("Pronađi rutu");
         searchButton.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-radius: 5; -fx-padding: 8 16;");
         searchButton.setOnAction(e -> handleSearchAction());
@@ -154,13 +148,11 @@ public class GraphWindow {
         top5RoutesButton.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-radius: 5; -fx-padding: 8 16;");
         top5RoutesButton.setOnAction(e -> handleTop5RoutesAction());
 
-        // Route section
         Label routeLabel = new Label("REZULTAT PRETRAGE");
         routeLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2E86AB; -fx-padding: 10 0 10 0;");
 
         setupRouteTableView();
 
-        // Total label with better styling
         totalLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057; -fx-padding: 5 0;");
 
         detailsBox.getChildren().addAll(
@@ -272,7 +264,6 @@ public class GraphWindow {
                 }
 
                 selectingStart = !selectingStart;
-                // Clear the best route when user selects new cities
                 bestRoute.clear();
                 graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
             });
@@ -314,7 +305,7 @@ public class GraphWindow {
                 } else {
                     routeTableView.getItems().addAll(route);
                     calculateAndDisplayTotal(route);
-                    // Store the best route and highlight it on the graph
+
                     bestRoute = new ArrayList<>(route);
                     highlightBestRoute();
                 }
@@ -324,7 +315,7 @@ public class GraphWindow {
             protected void failed() {
                 totalLabel.setText("Greška prilikom traženja rute.");
                 getException().printStackTrace();
-                // Clear highlighting on error
+
                 bestRoute.clear();
                 graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
             }
@@ -358,7 +349,7 @@ public class GraphWindow {
             protected void succeeded() {
                 List<Departure> route = getValue();
                 if (!route.isEmpty()) {
-                    // Store and highlight the best route
+
                     bestRoute = new ArrayList<>(route);
                     highlightBestRoute();
                 } else {
@@ -378,7 +369,6 @@ public class GraphWindow {
         };
         new Thread(task).start();
 
-        // Open the TopRoutesWindow to show all routes
         new TopRoutesWindow(cityMap, from, to, crit).show();
     }
 
@@ -405,8 +395,7 @@ public class GraphWindow {
 
             Duration totalDuration = Duration.between(firstDeparture, lastArrival);
             long totalMinutes = totalDuration.toMinutes();
-            
-            // Add minimum transfer time from JSON data
+
             int totalTransferTime = 0;
             for (int i = 0; i < route.size() - 1; i++) {
                 totalTransferTime += route.get(i).minTransferTime;
@@ -435,10 +424,8 @@ public class GraphWindow {
 
     private void highlightBestRoute() {
         if (bestRoute.isEmpty()) {
-            // Clear highlighting if no route
             graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
         } else {
-            // Highlight the best route on the graph
             graphPainter.drawGraphWithRoute(rows, cols, selectedStartNode, selectedEndNode, bestRoute);
         }
     }

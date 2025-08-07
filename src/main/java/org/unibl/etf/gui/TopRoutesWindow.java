@@ -59,7 +59,6 @@ public class TopRoutesWindow {
         Label headerLabel = new Label("Top 5 ruta od " + startCity + " do " + endCity + ":");
         headerLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
 
-        // Add progress indicator for better UX
         VBox progressBox = new VBox(5);
         progressBox.setAlignment(javafx.geometry.Pos.CENTER);
         progressBox.getChildren().addAll(progressIndicator, statusLabel);
@@ -74,7 +73,6 @@ public class TopRoutesWindow {
         Scene scene = new Scene(root, 900, 700);
         stage.setScene(scene);
 
-        // Set up window close handler to clean up resources
         stage.setOnCloseRequest(event -> {
             executorService.shutdown();
         });
@@ -105,10 +103,6 @@ public class TopRoutesWindow {
                     statusLabel.setText("Nema dostupnih ruta.");
                 } else {
                     statusLabel.setText("Prikazano " + topRoutes.size() + " ruta.");
-                    System.out.println("Found " + topRoutes.size() + " routes for " + startCity + " to " + endCity);
-                    for (int i = 0; i < topRoutes.size(); i++) {
-                        System.out.println("Route " + (i + 1) + ": " + topRoutes.get(i).size() + " departures");
-                    }
                 }
             }
 
@@ -120,7 +114,6 @@ public class TopRoutesWindow {
             }
         };
 
-        // Use executor service for better resource management
         executorService.submit(task);
     }
 
@@ -129,8 +122,7 @@ public class TopRoutesWindow {
         
         for (int i = 0; i < topRoutes.size(); i++) {
             List<Departure> route = topRoutes.get(i);
-            
-            // Create collapsible section for each route
+
             TitledPane routeSection = createRouteSection(i + 1, route);
             tableContainer.getChildren().add(routeSection);
         }
@@ -143,13 +135,11 @@ public class TopRoutesWindow {
         TableView<Departure> routeTable = new TableView<>();
         setupRouteTableColumns(routeTable);
         routeTable.setItems(javafx.collections.FXCollections.observableArrayList(route));
-        routeTable.setPrefHeight(Math.min(200, 50 + route.size() * 30)); // Dynamic height based on route size
-        
-        // Add route details as a label
+        routeTable.setPrefHeight(Math.min(200, 50 + route.size() * 30));
+
         Label detailsLabel = new Label("Detalji rute:");
         detailsLabel.setStyle("-fx-font-weight: bold;");
-        
-        // Add buy ticket button
+
         Button buyTicketButton = new Button("Kupi kartu");
         buyTicketButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;");
         buyTicketButton.setOnAction(e -> handleBuyTicket(routeNumber, route));
@@ -158,7 +148,7 @@ public class TopRoutesWindow {
         content.getChildren().addAll(detailsLabel, routeTable, buyTicketButton);
         
         TitledPane section = new TitledPane(title, content);
-        section.setExpanded(routeNumber <= 2); // Only first 2 routes expanded by default
+        section.setExpanded(routeNumber <= 2);
         section.setCollapsible(true);
         
         return section;
@@ -227,8 +217,7 @@ public class TopRoutesWindow {
 
             Duration totalDuration = Duration.between(firstDeparture, lastArrival);
             long totalMinutes = totalDuration.toMinutes();
-            
-            // Add minimum transfer time from JSON data
+
             int totalTransferTime = 0;
             for (int i = 0; i < route.size() - 1; i++) {
                 totalTransferTime += route.get(i).minTransferTime;
@@ -259,25 +248,21 @@ public class TopRoutesWindow {
 
     private void handleBuyTicket(int routeNumber, List<Departure> route) {
         try {
-            // Create receipts directory if it doesn't exist
             Path receiptsDir = Paths.get("racuni");
             if (!Files.exists(receiptsDir)) {
                 Files.createDirectories(receiptsDir);
             }
 
-            // Generate receipt filename with timestamp
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             String filename = "racun_" + startCity + "_do_" + endCity + "_ruta" + routeNumber + "_" + timestamp + ".txt";
             Path receiptPath = receiptsDir.resolve(filename);
 
-            // Calculate route details
             String relation = startCity + " → " + endCity;
             String time = calculateRouteTime(route);
             int price = calculateRoutePrice(route);
             String date = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
             String purchaseTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"));
 
-            // Generate receipt content
             StringBuilder receipt = new StringBuilder();
             receipt.append("==========================================\n");
             receipt.append("              KARTA ZA PUTOVANJE\n");
@@ -304,19 +289,16 @@ public class TopRoutesWindow {
             receipt.append("Hvala na kupovini!\n");
             receipt.append("==========================================\n");
 
-            // Write receipt to file
             try (FileWriter writer = new FileWriter(receiptPath.toFile())) {
                 writer.write(receipt.toString());
             }
 
-            // Show success message
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Karta kupljena");
             alert.setHeaderText("Uspješno ste kupili kartu!");
             alert.setContentText("Račun je sačuvan u: " + receiptPath.toFile());
             alert.showAndWait();
-            
-            // Show updated statistics
+
             StatisticsWindow.showStatistics();
 
         } catch (IOException e) {
@@ -353,8 +335,7 @@ public class TopRoutesWindow {
 
             Duration totalDuration = Duration.between(firstDeparture, lastArrival);
             long totalMinutes = totalDuration.toMinutes();
-            
-            // Add minimum transfer time from JSON data
+
             int totalTransferTime = 0;
             for (int i = 0; i < route.size() - 1; i++) {
                 totalTransferTime += route.get(i).minTransferTime;

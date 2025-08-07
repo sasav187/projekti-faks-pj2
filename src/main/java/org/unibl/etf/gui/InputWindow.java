@@ -52,7 +52,7 @@ public class InputWindow {
 
         Scene scene = new Scene(root, 350, 180);
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Pathfinder - Unos dimenzija");
+        primaryStage.setTitle("🚂 Pathfinder - Unos dimenzija");
         primaryStage.show();
 
         generateBtn.setOnAction(e -> {
