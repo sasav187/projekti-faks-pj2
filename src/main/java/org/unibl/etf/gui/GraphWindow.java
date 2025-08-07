@@ -82,9 +82,9 @@ public class GraphWindow {
 
         graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
 
-        Scene scene = new Scene(graphRoot, width + 400, Math.max(height, 600));
+        Scene scene = new Scene(graphRoot, width + 450, Math.max(height, 700));
         Stage stage = new Stage();
-        stage.setTitle("Pathfinder - Mapa gradova (" + rows + " x " + cols + ")");
+        stage.setTitle("🚂 Pathfinder - Mapa gradova (" + rows + " x " + cols + ")");
 
         double screenW = Screen.getPrimary().getBounds().getWidth();
         double screenH = Screen.getPrimary().getBounds().getHeight();
@@ -101,37 +101,77 @@ public class GraphWindow {
     }
 
     private VBox createDetailsBox() {
-        VBox detailsBox = new VBox(10);
-        detailsBox.setPadding(new Insets(10));
-        detailsBox.setPrefWidth(350);
+        VBox detailsBox = new VBox(15);
+        detailsBox.setPadding(new Insets(15));
+        detailsBox.setPrefWidth(400);
+        detailsBox.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1;");
 
+        // Header section
+        Label headerLabel = new Label("INFORMACIJE O GRADOVIMA");
+        headerLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2E86AB; -fx-padding: 0 0 10 0;");
+
+        // Cities section
         Label cityLabel = new Label("Gradovi");
-        cityListView.setMinHeight(150);
-        cityListView.setPrefHeight(200);
+        cityLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
+        cityListView.setMinHeight(120);
+        cityListView.setPrefHeight(150);
+        cityListView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
+        // Stations section
         Label stationLabel = new Label("Stanice");
-        stationListView.setMaxHeight(50);
+        stationLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
+        stationListView.setMaxHeight(60);
+        stationListView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
+        // Departures section
         Label departureLabel = new Label("Polasci");
-        departureListView.setMaxHeight(150);
+        departureLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
+        departureListView.setMaxHeight(120);
+        departureListView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
-        Label routeLabel = new Label("Ruta");
+        // Search section
+        Label searchSectionLabel = new Label("PRETRAGA RUTA");
+        searchSectionLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2E86AB; -fx-padding: 10 0 10 0;");
 
-        setupRouteTableView();
+        Label startCityLabel = new Label("Početni grad:");
+        startCityLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #495057;");
+        startCityBox.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
+        Label endCityLabel = new Label("Odredišni grad:");
+        endCityLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #495057;");
+        endCityBox.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
+
+        Label criteriaLabel = new Label("Kriterijum:");
+        criteriaLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #495057;");
+        criteriaBox.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
+
+        // Buttons
         Button searchButton = new Button("Pronađi rutu");
+        searchButton.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-radius: 5; -fx-padding: 8 16;");
         searchButton.setOnAction(e -> handleSearchAction());
 
         Button top5RoutesButton = new Button("Prikaz dodatnih ruta");
+        top5RoutesButton.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-radius: 5; -fx-padding: 8 16;");
         top5RoutesButton.setOnAction(e -> handleTop5RoutesAction());
 
+        // Route section
+        Label routeLabel = new Label("REZULTAT PRETRAGE");
+        routeLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2E86AB; -fx-padding: 10 0 10 0;");
+
+        setupRouteTableView();
+
+        // Total label with better styling
+        totalLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057; -fx-padding: 5 0;");
+
         detailsBox.getChildren().addAll(
+                headerLabel,
                 cityLabel, cityListView,
                 stationLabel, stationListView,
                 departureLabel, departureListView,
-                new Label("Početni grad:"), startCityBox,
-                new Label("Odredišni grad:"), endCityBox,
-                new Label("Kriterijum:"), criteriaBox,
+                searchSectionLabel,
+                startCityLabel, startCityBox,
+                endCityLabel, endCityBox,
+                criteriaLabel, criteriaBox,
                 searchButton,
                 routeLabel,
                 routeTableView,
@@ -148,6 +188,7 @@ public class GraphWindow {
             String time = data.getValue().departureTime;
             return new SimpleStringProperty(from + " (" + time + ")");
         });
+        fromCol.setPrefWidth(150);
 
         TableColumn<Departure, String> toCol = new TableColumn<>("Dolazak");
         toCol.setCellValueFactory(data -> {
@@ -158,15 +199,20 @@ public class GraphWindow {
             String arrivalTime = computeArrivalTime(depTime, minutes);
             return new SimpleStringProperty(to + " (" + arrivalTime + ")");
         });
+        toCol.setPrefWidth(150);
 
         TableColumn<Departure, String> typeCol = new TableColumn<>("Tip");
         typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().type));
+        typeCol.setPrefWidth(80);
 
         TableColumn<Departure, Integer> priceCol = new TableColumn<>("Cijena");
         priceCol.setCellValueFactory(data -> new SimpleIntegerProperty(data.getValue().price).asObject());
+        priceCol.setPrefWidth(80);
 
         routeTableView.getColumns().addAll(fromCol, toCol, typeCol, priceCol);
         routeTableView.setPrefHeight(200);
+        routeTableView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
+        routeTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     private void initializeUIComponents() {
