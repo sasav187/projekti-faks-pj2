@@ -122,11 +122,8 @@ public class GraphWindow {
         Button searchButton = new Button("Pronađi rutu");
         searchButton.setOnAction(e -> handleSearchAction());
 
-        Button top5RoutesButton = new Button("Pronađi top 5 ruta");
+        Button top5RoutesButton = new Button("Prikaz dodatnih ruta");
         top5RoutesButton.setOnAction(e -> handleTop5RoutesAction());
-
-        Button clearRouteButton = new Button("Ukloni prikaz rute");
-        clearRouteButton.setOnAction(e -> clearRouteHighlight());
 
         detailsBox.getChildren().addAll(
                 cityLabel, cityListView,
@@ -136,10 +133,10 @@ public class GraphWindow {
                 new Label("Odredišni grad:"), endCityBox,
                 new Label("Kriterijum:"), criteriaBox,
                 searchButton,
-                top5RoutesButton,
-                clearRouteButton,
-                routeLabel, routeTableView,
-                totalLabel
+                routeLabel,
+                routeTableView,
+                totalLabel,
+                top5RoutesButton
         );
         return detailsBox;
     }
@@ -386,11 +383,5 @@ public class GraphWindow {
             // Highlight the best route on the graph
             graphPainter.drawGraphWithRoute(rows, cols, selectedStartNode, selectedEndNode, bestRoute);
         }
-    }
-
-    private void clearRouteHighlight() {
-        bestRoute.clear();
-        graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);
-        totalLabel.setText("Prikaz rute uklonjen.");
     }
 }

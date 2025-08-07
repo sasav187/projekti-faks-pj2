@@ -13,6 +13,12 @@ import org.unibl.etf.algo.RouteFinder;
 import org.unibl.etf.model.City;
 import org.unibl.etf.model.Departure;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -143,8 +149,13 @@ public class TopRoutesWindow {
         Label detailsLabel = new Label("Detalji rute:");
         detailsLabel.setStyle("-fx-font-weight: bold;");
         
+        // Add buy ticket button
+        Button buyTicketButton = new Button("Kupi kartu");
+        buyTicketButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;");
+        buyTicketButton.setOnAction(e -> handleBuyTicket(routeNumber, route));
+        
         VBox content = new VBox(5);
-        content.getChildren().addAll(detailsLabel, routeTable);
+        content.getChildren().addAll(detailsLabel, routeTable, buyTicketButton);
         
         TitledPane section = new TitledPane(title, content);
         section.setExpanded(routeNumber <= 2); // Only first 2 routes expanded by default
@@ -236,5 +247,114 @@ public class TopRoutesWindow {
         } catch (Exception e) {
             return "??:??";
         }
+    }
+
+    private void handleBuyTicket(int routeNumber, List<Departure> route) {
+        try {
+            // Create receipts directory if it doesn't exist
+            Path receiptsDir = Paths.get("racuni");
+            if (!Files.exists(receiptsDir)) {
+                Files.createDirectories(receiptsDir);
+            }
+
+            // Generate receipt filename with timestamp
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String filename = "racun_" + startCity + "_do_" + endCity + "_ruta" + routeNumber + "_" + timestamp + ".txt";
+            Path receiptPath = receiptsDir.resolve(filename);
+
+            // Calculate route details
+            String relation = startCity + " → " + endCity;
+            String time = calculateRouteTime(route);
+            int price = calculateRoutePrice(route);
+            String date = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+            String purchaseTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"));
+
+            // Generate receipt content
+            StringBuilder receipt = new StringBuilder();
+            receipt.append("==========================================\n");
+            receipt.append("              KARTA ZA PUTOVANJE\n");
+            receipt.append("==========================================\n\n");
+            receipt.append("Datum kupovine: ").append(purchaseTime).append("\n");
+            receipt.append("Relacija: ").append(relation).append("\n");
+            receipt.append("Kriterijum: ").append(criteria.name()).append("\n");
+            receipt.append("Ruta broj: ").append(routeNumber).append("\n\n");
+            receipt.append("DETALJI PUTOVANJA:\n");
+            receipt.append("------------------------------------------\n");
+
+            for (int i = 0; i < route.size(); i++) {
+                Departure dep = route.get(i);
+                String arrivalTime = computeArrivalTime(dep.departureTime, dep.duration);
+                receipt.append(String.format("%d. %s (%s) → %s (%s) [%s] - %d KM\n", 
+                    i + 1, dep.from, dep.departureTime, dep.to, arrivalTime, dep.type, dep.price));
+            }
+
+            receipt.append("\n------------------------------------------\n");
+            receipt.append("Ukupno vrijeme: ").append(time).append("\n");
+            receipt.append("Ukupna cijena: ").append(price).append(" KM\n");
+            receipt.append("Broj presjedanja: ").append(route.size() - 1).append("\n\n");
+            receipt.append("==========================================\n");
+            receipt.append("Hvala na kupovini!\n");
+            receipt.append("==========================================\n");
+
+            // Write receipt to file
+            try (FileWriter writer = new FileWriter(receiptPath.toFile())) {
+                writer.write(receipt.toString());
+            }
+
+            // Show success message
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Karta kupljena");
+            alert.setHeaderText("Uspješno ste kupili kartu!");
+            alert.setContentText("Račun je sačuvan u: " + receiptPath.toFile());
+            alert.showAndWait();
+            
+            // Show updated statistics
+            StatisticsWindow.showStatistics();
+
+        } catch (IOException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Greška");
+            alert.setHeaderText("Greška prilikom kupovine karte");
+            alert.setContentText("Nije moguće sačuvati račun: " + e.getMessage());
+            alert.showAndWait();
+            e.printStackTrace();
+        }
+    }
+
+    private String calculateRouteTime(List<Departure> route) {
+        if (route.isEmpty()) return "N/A";
+
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            LocalDate currentDate = LocalDate.now();
+            LocalDateTime firstDeparture = LocalDateTime.of(currentDate, LocalTime.parse(route.get(0).departureTime, formatter));
+            LocalDateTime lastArrival = firstDeparture;
+
+            for (Departure d : route) {
+                LocalTime depTime = LocalTime.parse(d.departureTime, formatter);
+                LocalDateTime depDateTime = LocalDateTime.of(currentDate, depTime);
+                
+                if (depDateTime.isBefore(lastArrival)) {
+                    currentDate = currentDate.plusDays(1);
+                    depDateTime = LocalDateTime.of(currentDate, depTime);
+                }
+                
+                LocalDateTime arrDateTime = depDateTime.plusMinutes(d.duration);
+                lastArrival = arrDateTime;
+            }
+
+            Duration totalDuration = Duration.between(firstDeparture, lastArrival);
+            long totalMinutes = totalDuration.toMinutes();
+            int hours = (int) (totalMinutes / 60);
+            int minutes = (int) (totalMinutes % 60);
+            
+            return String.format("%dh %dmin", hours, minutes);
+        } catch (Exception ex) {
+            return "N/A";
+        }
+    }
+
+    private int calculateRoutePrice(List<Departure> route) {
+        return route.stream().mapToInt(dep -> dep.price).sum();
     }
 } 
