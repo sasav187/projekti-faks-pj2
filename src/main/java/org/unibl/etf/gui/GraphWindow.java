@@ -126,7 +126,7 @@ public class GraphWindow {
         // Departures section
         Label departureLabel = new Label("Polasci");
         departureLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
-        departureListView.setMaxHeight(120);
+        departureListView.setMaxHeight(150);
         departureListView.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5;");
 
         // Search section
@@ -405,6 +405,14 @@ public class GraphWindow {
 
             Duration totalDuration = Duration.between(firstDeparture, lastArrival);
             long totalMinutes = totalDuration.toMinutes();
+            
+            // Add minimum transfer time from JSON data
+            int totalTransferTime = 0;
+            for (int i = 0; i < route.size() - 1; i++) {
+                totalTransferTime += route.get(i).minTransferTime;
+            }
+            totalMinutes += totalTransferTime;
+            
             int hours = (int) (totalMinutes / 60);
             int minutes = (int) (totalMinutes % 60);
             int totalPrice = route.stream().mapToInt(d -> d.price).sum();

@@ -227,6 +227,14 @@ public class TopRoutesWindow {
 
             Duration totalDuration = Duration.between(firstDeparture, lastArrival);
             long totalMinutes = totalDuration.toMinutes();
+            
+            // Add minimum transfer time from JSON data
+            int totalTransferTime = 0;
+            for (int i = 0; i < route.size() - 1; i++) {
+                totalTransferTime += route.get(i).minTransferTime;
+            }
+            totalMinutes += totalTransferTime;
+            
             int hours = (int) (totalMinutes / 60);
             int minutes = (int) (totalMinutes % 60);
             int totalPrice = route.stream().mapToInt(d -> d.price).sum();
@@ -345,6 +353,14 @@ public class TopRoutesWindow {
 
             Duration totalDuration = Duration.between(firstDeparture, lastArrival);
             long totalMinutes = totalDuration.toMinutes();
+            
+            // Add minimum transfer time from JSON data
+            int totalTransferTime = 0;
+            for (int i = 0; i < route.size() - 1; i++) {
+                totalTransferTime += route.get(i).minTransferTime;
+            }
+            totalMinutes += totalTransferTime;
+            
             int hours = (int) (totalMinutes / 60);
             int minutes = (int) (totalMinutes % 60);
             
