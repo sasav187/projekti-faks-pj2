@@ -232,7 +232,7 @@ public class TopRoutesWindow {
             int totalPrice = route.stream().mapToInt(d -> d.price).sum();
             int transfers = route.size() - 1;
 
-            return String.format("%dh %dmin, %d KM, %d transfera", hours, minutes, totalPrice, transfers);
+            return String.format("%dh %dmin, %d KM, %d presjedanja", hours, minutes, totalPrice, transfers);
         } catch (Exception ex) {
             return "Greška u računanju.";
         }

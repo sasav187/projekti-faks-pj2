@@ -243,6 +243,11 @@ public class GraphWindow {
             return;
         }
 
+        if (from.equals(to)) {
+            totalLabel.setText("Početni i odredišni grad ne mogu biti isti.");
+            return;
+        }
+
         totalLabel.setText("Tražim rutu...");
 
         Task<List<Departure>> task = new Task<>() {
@@ -296,7 +301,6 @@ public class GraphWindow {
             return;
         }
 
-        // Find and highlight the best route for the selected criteria
         Task<List<Departure>> task = new Task<>() {
             @Override
             protected List<Departure> call() {

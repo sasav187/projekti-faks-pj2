@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 public class ReceiptStatistics {
     
     private static final Pattern PRICE_PATTERN = Pattern.compile("Ukupna cijena: (\\d+) KM");
-    private static final String RECEIPTS_DIR = "receipts";
+    private static final String RECEIPTS_DIR = "racuni";
     
     public static StatisticsData calculateStatistics() {
         StatisticsData stats = new StatisticsData();
@@ -28,8 +28,7 @@ public class ReceiptStatistics {
                     .toList();
             
             stats.setTotalTickets(receiptFiles.size());
-            
-            // Calculate total money earned
+
             int totalMoney = 0;
             for (Path receiptFile : receiptFiles) {
                 try {
@@ -39,14 +38,14 @@ public class ReceiptStatistics {
                         totalMoney += Integer.parseInt(matcher.group(1));
                     }
                 } catch (IOException e) {
-                    System.err.println("Error reading receipt file: " + receiptFile);
+                    System.err.println("Greška pri čitanju fajla: " + receiptFile);
                 }
             }
             
             stats.setTotalMoneyEarned(totalMoney);
             
         } catch (IOException e) {
-            System.err.println("Error calculating statistics: " + e.getMessage());
+            System.err.println("Greška pri računanju: " + e.getMessage());
         }
         
         return stats;
