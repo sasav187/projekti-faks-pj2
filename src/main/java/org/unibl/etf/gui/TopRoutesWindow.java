@@ -253,7 +253,7 @@ public class TopRoutesWindow {
                 Files.createDirectories(receiptsDir);
             }
 
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("ddMMyyyy_HHmmss"));
             String filename = "racun_" + startCity + "_do_" + endCity + "_ruta" + routeNumber + "_" + timestamp + ".txt";
             Path receiptPath = receiptsDir.resolve(filename);
 
