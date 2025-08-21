@@ -15,6 +15,21 @@ import org.unibl.etf.model.City;
 
 import java.util.Map;
 
+/**
+ * InputWindow je GUI prozor koji omogućava korisniku unos dimenzija mreže
+ * (broj redova i kolona) za generisanje transportne mreže.
+ *
+ * <p>Glavne funkcionalnosti:</p>
+ * <ul>
+ *     <li>Unos broja redova i kolona preko tekstualnih polja</li>
+ *     <li>Generisanje transportne mape koristeći {@link TransportDataGenerator}</li>
+ *     <li>Čuvanje generisanih podataka u JSON fajl</li>
+ *     <li>Učitavanje podataka iz JSON-a pomoću {@link JsonLoader}</li>
+ *     <li>Prikaz generisanog grafa u {@link GraphWindow}</li>
+ * </ul>
+ *
+ * @author Saša Vujančević
+ */
 public class InputWindow {
 
     private final Stage primaryStage;

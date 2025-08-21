@@ -3,6 +3,19 @@ package org.unibl.etf.model;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+/**
+ * Klasa {@code Departure} predstavlja pojedinačni polazak u okviru
+ * transportne mreže.
+ *
+ * Polazak sadrži informacije o vrsti prevoza (npr. autobus, voz),
+ * polaznoj i odredišnoj stanici, vremenu polaska, trajanju putovanja,
+ * ceni karte i minimalnom vremenu potrebnom za presedanje.
+ *
+ * Ova klasa omogućava jednostavno modelovanje i praćenje svih
+ * relevantnih podataka vezanih za jedno putovanje između dvije stanice.
+ *
+ * @author Saša Vujančević
+ */
 public class Departure {
     public String type;
     public String from;

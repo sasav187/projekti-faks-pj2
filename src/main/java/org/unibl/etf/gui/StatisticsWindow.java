@@ -9,6 +9,17 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.unibl.etf.stats.ReceiptStatistics;
 
+/**
+ * StatisticsWindow je pomoćna klasa koja prikazuje
+ * prozor sa osnovnom statistikom prodaje karata.
+ *
+ * <p>Glavne funkcionalnosti uključuju:</p>
+ * <ul>
+ *     <li>Prikaz ukupnog broja prodatih karata</li>
+ *     <li>Prikaz ukupnog prihoda od prodaje</li>
+ *     <li>Automatsko zatvaranje prozora nakon nekoliko sekundi</li>
+ * </ul>
+ */
 public class StatisticsWindow {
     
     public static void showStatistics() {

@@ -11,6 +11,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * TransportGraphPainter je klasa zadužena za crtanje grafičkog prikaza mreže gradova
+ * i transportnih veza između njih na JavaFX {@link Canvas}-u.
+ *
+ * <p>Glavne funkcionalnosti uključuju:</p>
+ * <ul>
+ *     <li>Crtanje čvorova (gradova) i veza između njih</li>
+ *     <li>Isticanje početnog i krajnjeg grada</li>
+ *     <li>Prikaz rute između gradova sa označenim gradovima</li>
+ *     <li>Prepoznavanje gradova klikom miša na Canvas</li>
+ * </ul>
+ *
+ * @author Saša Vujančević
+ */
 public class TransportGraphPainter {
 
     private static final double NODE_RADIUS = 15;
@@ -22,10 +36,23 @@ public class TransportGraphPainter {
         this.cityMap = cityMap;
     }
 
+    /**
+     * Postavlja Canvas na kojem će se crtati graf.
+     *
+     * @param canvas JavaFX Canvas objekat
+     */
     public void setCanvas(Canvas canvas) {
         this.canvas = canvas;
     }
 
+    /**
+     * Crta mrežu gradova i veza između njih, ističući početni i krajnji grad.
+     *
+     * @param rows broj redova u mreži
+     * @param cols broj kolona u mreži
+     * @param selectedStartNode početni grad
+     * @param selectedEndNode krajnji grad
+     */
     public void drawGraph(int rows, int cols, City selectedStartNode, City selectedEndNode) {
         if (canvas == null) return;
 
@@ -74,12 +101,28 @@ public class TransportGraphPainter {
         }
     }
 
+    /**
+     * Vraća opcionalni par čvora i grada na koji je korisnik kliknuo.
+     *
+     * @param x X koordinata klika
+     * @param y Y koordinata klika
+     * @return Optional sa parom {@link CircleNode} i {@link City}, ili prazno ako nije kliknuto na grad
+     */
     public Optional<Map.Entry<org.unibl.etf.gui.CircleNode, City>> getCityNodeAt(double x, double y) {
         return cityNodes.entrySet().stream()
                 .filter(entry -> entry.getKey().containsPoint(x, y))
                 .findFirst();
     }
 
+    /**
+     * Crta graf sa istaknutom rutom između gradova označenih žutom bojom.
+     *
+     * @param rows broj redova u mreži
+     * @param cols broj kolona u mreži
+     * @param selectedStartNode početni grad
+     * @param selectedEndNode krajnji grad
+     * @param route lista {@link Departure} objekata koji predstavljaju rutu
+     */
     public void drawGraphWithRoute(int rows, int cols, City selectedStartNode, City selectedEndNode, List<Departure> route) {
         if (canvas == null) return;
 

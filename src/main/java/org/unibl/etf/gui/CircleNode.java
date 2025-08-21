@@ -1,5 +1,15 @@
 package org.unibl.etf.gui;
 
+/**
+ * Klasa {@code CircleNode} predstavlja kružni čvor na grafičkom prikazu,
+ * definisan koordinatama centra i poluprečnikom.
+ *
+ * Ova klasa omogućava proveru da li se određena tačka nalazi unutar
+ * kružnog čvora, što je korisno za interakcije u GUI aplikaciji, kao što
+ * su selekcija ili klik na čvor.
+ *
+ * @author Saša Vujančević
+ */
 public class CircleNode {
     final double x, y, radius;
 

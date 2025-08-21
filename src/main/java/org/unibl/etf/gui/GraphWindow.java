@@ -27,6 +27,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * GraphWindow je GUI klasa koja prikazuje mapu gradova sa njihovim stanicama i polascima.
+ * Omogućava korisniku interaktivno odabiranje početnog i odredišnog grada
+ * i pronalaženje optimalne rute prema odabranom kriterijumu (vreme, cena, broj transfera).
+ *
+ * <p>Klasa koristi {@link TransportGraphPainter} za crtanje grafa gradova
+ * i {@link RouteFinder} za izračunavanje optimalnih ruta.</p>
+ *
+ * <p>Korisnički interfejs uključuje:</p>
+ * <ul>
+ *   <li>ListView za prikaz gradova, stanica i polazaka</li>
+ *   <li>ComboBox za odabir početnog i odredišnog grada i kriterijuma</li>
+ *   <li>TableView za prikaz izabrane rute</li>
+ *   <li>Label za prikaz ukupnog trajanja i cijene rute</li>
+ *   <li>Button za pronalaženje rute i prikaz dodatnih top ruta</li>
+ * </ul>
+ *
+ * @author Saša Vujančević
+ */
 public class GraphWindow {
 
     private final int rows;
@@ -56,6 +75,10 @@ public class GraphWindow {
         this.graphPainter = new TransportGraphPainter(cityMap);
     }
 
+    /**
+     * Prikazuje grafički prozor sa mapom gradova i pripadajućim komponentama.
+     * Uključuje Canvas sa crtežom grafa i VBox sa detaljnim informacijama, ListView, TableView i ComboBox-ovima.
+     */
     public void showGraph() {
         BorderPane graphRoot = new BorderPane();
 
@@ -100,6 +123,11 @@ public class GraphWindow {
         stage.show();
     }
 
+    /**
+     * Kreira VBox sa detaljnim informacijama i kontrolama za pretragu ruta.
+     *
+     * @return VBox sa svim UI komponentama za detalje
+     */
     private VBox createDetailsBox() {
         VBox detailsBox = new VBox(15);
         detailsBox.setPadding(new Insets(15));
@@ -173,6 +201,10 @@ public class GraphWindow {
         return detailsBox;
     }
 
+    /**
+     * Postavlja kolone i izgled {@link #routeTableView} za prikaz polazaka.
+     * Kolone uključuju polazak, dolazak, tip i cijenu.
+     */
     private void setupRouteTableView() {
         TableColumn<Departure, String> fromCol = new TableColumn<>("Polazak");
         fromCol.setCellValueFactory(data -> {
@@ -207,6 +239,10 @@ public class GraphWindow {
         routeTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
+    /**
+     * Inicijalizuje osnovne UI komponente.
+     * Popunjava ComboBox-ove i ListView sa gradovima i kriterijumima.
+     */
     private void initializeUIComponents() {
         startCityBox.getItems().addAll(cityMap.keySet());
         endCityBox.getItems().addAll(cityMap.keySet());
@@ -217,6 +253,16 @@ public class GraphWindow {
         cityListView.getItems().addAll(cityMap.keySet());
     }
 
+    /**
+     * Povezuje događaje korisničkog interfejsa sa odgovarajućim akcijama.
+     * <ul>
+     *   <li>Selektovanje grada u ListView prikazuje stanice i polaske</li>
+     *   <li>Selektovanje stanice prikazuje polaske</li>
+     *   <li>Klik na Canvas omogućava selekciju početnog i odredišnog grada</li>
+     * </ul>
+     *
+     * @param canvas {@link Canvas} na kojem se detektuju klikovi
+     */
     private void setupEventHandlers(Canvas canvas) {
         cityListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             stationListView.getItems().clear();
@@ -270,6 +316,11 @@ public class GraphWindow {
         });
     }
 
+    /**
+     * Rukuje akcijom pronalaženja rute na osnovu izabranih gradova i kriterijuma.
+     * Pokreće Task u zasebnom Thread-u da bi GUI ostao responzivan.
+     * Nakon završetka Task-a ažurira {@link #routeTableView} i {@link #totalLabel}.
+     */
     private void handleSearchAction() {
         String from = startCityBox.getValue();
         String to = endCityBox.getValue();
@@ -323,6 +374,11 @@ public class GraphWindow {
         new Thread(task).start();
     }
 
+    /**
+     * Rukuje akcijom prikaza dodatnih/top 5 ruta.
+     * Pokreće Task u zasebnom Thread-u za pronalaženje najboljih ruta.
+     * Otvara {@link TopRoutesWindow} za prikaz više ruta.
+     */
     private void handleTop5RoutesAction() {
         String from = startCityBox.getValue();
         String to = endCityBox.getValue();
@@ -372,6 +428,12 @@ public class GraphWindow {
         new TopRoutesWindow(cityMap, from, to, crit).show();
     }
 
+    /**
+     * Računa i prikazuje ukupno trajanje i cijenu rute.
+     * Uključuje vrijeme transfera između polazaka.
+     *
+     * @param route lista {@link Departure} objekata koji čine rutu
+     */
     private void calculateAndDisplayTotal(List<Departure> route) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -411,6 +473,13 @@ public class GraphWindow {
         }
     }
 
+    /**
+     * Računa vrijeme dolaska na osnovu vremena polaska i trajanja putovanja.
+     *
+     * @param depTime vrijeme polaska u formatu "HH:mm"
+     * @param duration trajanje putovanja u minutima
+     * @return vrijeme dolaska u formatu "HH:mm" ili "??:??" ako dođe do greške
+     */
     private String computeArrivalTime(String depTime, int duration) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -422,6 +491,11 @@ public class GraphWindow {
         }
     }
 
+    /**
+     * Ističe trenutno najbolju rutu na grafu.
+     * Ako {@link #bestRoute} nije prazna, crta graf sa istaknutom rutom.
+     * U suprotnom crta graf bez ruta.
+     */
     private void highlightBestRoute() {
         if (bestRoute.isEmpty()) {
             graphPainter.drawGraph(rows, cols, selectedStartNode, selectedEndNode);

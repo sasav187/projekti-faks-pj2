@@ -4,6 +4,22 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Klasa {@code TransportDataGenerator} služi za generisanje testnih podataka
+ * za transportnu mrežu.
+ *
+ * Podaci uključuju:
+ * <ul>
+ *     <li>mrežu gradova (matrica)</li>
+ *     <li>stanice za svaki grad (autobuske i željezničke)</li>
+ *     <li>polaske (Departure) sa nasumičnim parametrima poput vremena, trajanja, cijene i minimalnog vremena presjedanja</li>
+ * </ul>
+ *
+ * Ova klasa omogućava simulaciju mreže gradova i transportnih polazaka, što je korisno
+ * za testiranje i razvoj algoritama za pronalaženje ruta.
+ *
+ * @author Saša Vujančević
+ */
 public class TransportDataGenerator {
     private int rows;
     private int cols;

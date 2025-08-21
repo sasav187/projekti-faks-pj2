@@ -29,6 +29,22 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * TopRoutesWindow je GUI klasa koja prikazuje top N ruta između dva grada prema određenom kriterijumu.
+ * Omogućava korisniku pregled svih ruta, detalja o polascima i kupovinu karata.
+ *
+ * <p>Korisnički interfejs uključuje:</p>
+ * <ul>
+ *   <li>ProgressIndicator i Label za status pretrage</li>
+ *   <li>ScrollPane sa TitledPane sekcijama za svaku top rutu</li>
+ *   <li>TableView za prikaz polazaka i detalja rute</li>
+ *   <li>Button za kupovinu karte i generisanje računa</li>
+ * </ul>
+ *
+ * <p>Klasa koristi {@link RouteFinder} za izračunavanje top ruta i vodi računa o asinhronom izvršavanju zadatka
+ * preko {@link ExecutorService} kako bi GUI ostao responzivan.</p>
+ * @author Saša Vujančević
+ */
 public class TopRoutesWindow {
 
     private final Map<String, City> cityMap;
@@ -48,6 +64,10 @@ public class TopRoutesWindow {
         this.criteria = criteria;
     }
 
+    /**
+     * Prikazuje GUI prozor sa top rutama i inicijalizuje pretragu.
+     * Postavlja modalni Stage i ScrollPane sa detaljima ruta.
+     */
     public void show() {
         stage = new Stage();
         stage.setTitle("Top 5 ruta po kriterijumu: " + criteria.name());
@@ -81,6 +101,10 @@ public class TopRoutesWindow {
         stage.show();
     }
 
+    /**
+     * Pokreće asinhronu pretragu top ruta koristeći {@link RouteFinder}.
+     * Ažurira statusLabel i progressIndicator tokom pretrage.
+     */
     private void startSearch() {
         statusLabel.setText("Tražim top 5 ruta...");
         progressIndicator.setVisible(true);
@@ -117,6 +141,11 @@ public class TopRoutesWindow {
         executorService.submit(task);
     }
 
+    /**
+     * Prikazuje listu top ruta u {@link #tableContainer}.
+     *
+     * @param topRoutes lista ruta, gde je svaka ruta lista {@link Departure} objekata
+     */
     private void displayTopRoutes(List<List<Departure>> topRoutes) {
         tableContainer.getChildren().clear();
         
@@ -128,6 +157,13 @@ public class TopRoutesWindow {
         }
     }
 
+    /**
+     * Kreira TitledPane sekciju za jednu rutu sa detaljima i opcijom kupovine karte.
+     *
+     * @param routeNumber redni broj rute
+     * @param route lista {@link Departure} objekata koji čine rutu
+     * @return TitledPane sa prikazom rute
+     */
     private TitledPane createRouteSection(int routeNumber, List<Departure> route) {
         String summary = calculateRouteSummary(route);
         String title = "Ruta " + routeNumber + ": " + summary;
@@ -154,6 +190,12 @@ public class TopRoutesWindow {
         return section;
     }
 
+    /**
+     * Postavlja kolone TableView-a za prikaz polazaka u ruti.
+     * Kolone uključuju: Polazak, Dolazak, Tip, Cijenu i Trajanje.
+     *
+     * @param table TableView koji se konfiguriše
+     */
     private void setupRouteTableColumns(TableView<Departure> table) {
         table.getColumns().clear();
         
@@ -191,6 +233,12 @@ public class TopRoutesWindow {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
+    /**
+     * Izračunava kratak sažetak rute uključujući ukupno trajanje, cijenu i broj presjedanja.
+     *
+     * @param route lista {@link Departure} objekata
+     * @return String sa sažetkom rute
+     */
     private String calculateRouteSummary(List<Departure> route) {
         if (route.isEmpty()) {
             return "N/A";
@@ -235,6 +283,13 @@ public class TopRoutesWindow {
         }
     }
 
+    /**
+     * Računa vreme dolaska na osnovu vremena polaska i trajanja putovanja.
+     *
+     * @param depTime vrijeme polaska u formatu "HH:mm"
+     * @param duration trajanje putovanja u minutima
+     * @return vrijeme dolaska u formatu "HH:mm" ili "??:??" ako dođe do greške
+     */
     private String computeArrivalTime(String depTime, int duration) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -246,6 +301,13 @@ public class TopRoutesWindow {
         }
     }
 
+    /**
+     * Rukuje akcijom kupovine karte za određenu rutu.
+     * Generiše tekstualni račun u folderu "racuni" i prikazuje Alert korisniku.
+     *
+     * @param routeNumber redni broj rute
+     * @param route lista {@link Departure} objekata koji čine rutu
+     */
     private void handleBuyTicket(int routeNumber, List<Departure> route) {
         try {
             Path receiptsDir = Paths.get("racuni");
@@ -311,6 +373,12 @@ public class TopRoutesWindow {
         }
     }
 
+    /**
+     * Računa ukupno trajanje rute uključujući vrijeme transfera između polazaka.
+     *
+     * @param route lista {@link Departure} objekata
+     * @return String sa ukupnim vremenom putovanja (npr. "3h 45min")
+     */
     private String calculateRouteTime(List<Departure> route) {
         if (route.isEmpty()) return "N/A";
 
@@ -351,6 +419,12 @@ public class TopRoutesWindow {
         }
     }
 
+    /**
+     * Računa ukupnu cijenu rute.
+     *
+     * @param route lista {@link Departure} objekata
+     * @return ukupna cijena rute
+     */
     private int calculateRoutePrice(List<Departure> route) {
         return route.stream().mapToInt(dep -> dep.price).sum();
     }

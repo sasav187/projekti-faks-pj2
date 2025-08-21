@@ -1,5 +1,19 @@
 package org.unibl.etf.model;
 
+/**
+ * Klasa {@code City} predstavlja grad u transportnoj mreži.
+ *
+ * Svaki grad ima naziv i dvije stanice:
+ * <ul>
+ *   <li>Autobusku stanicu</li>
+ *   <li>Željezničku stanicu</li>
+ * </ul>
+ *
+ * Ova klasa omogućava modelovanje grada kao čvora u mreži transporta,
+ * pri čemu se sa njim povezuju autobuski i željeznički polasci.
+ *
+ * @author Saša Vujančević
+ */
 public class City {
 
     private final String name;

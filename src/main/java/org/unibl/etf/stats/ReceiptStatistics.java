@@ -8,6 +8,18 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Klasa za prikupljanje i izračunavanje statistike prodaje karata iz računa.
+ *
+ * <p>Statistika uključuje:</p>
+ * <ul>
+ *     <li>Ukupan broj prodatih karata</li>
+ *     <li>Ukupan prihod od prodaje karata</li>
+ * </ul>
+ *
+ * <p>Računi se očekuju u direktorijumu {@code racuni} i moraju biti tekstualni fajlovi.</p>
+ * @author Saša Vujančević
+ */
 public class ReceiptStatistics {
     
     private static final Pattern PRICE_PATTERN = Pattern.compile("Ukupna cijena: (\\d+) KM");
